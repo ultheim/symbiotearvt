@@ -34,7 +34,7 @@ window.processMemoryChat = async function(userText, apiKey, model, history = [])
 
     2. TOPICS: Broad categories (Identity, Preference, Location, Relationship, History, Work).
 
-    3. KEYWORDS: Extract 3-5 specific search terms from the input.
+    3. KEYWORDS: Extract 3-5 specific search terms from the input. Always include synonyms (e.g., if asking for 'favorite', include 'loves', 'likes', 'preference').
        - If user asks "What is Arvin's MBTI?", keywords must be: "Arvin, MBTI"
        - If user asks "Where does Meidy work?", keywords must be: "Meidy, Work, Job, Office"
        - CRITICAL: This is used for database retrieval. Be specific.
@@ -161,4 +161,5 @@ window.processMemoryChat = async function(userText, apiKey, model, history = [])
     
     responseData.detected_entities = synthData.entities; 
     return responseData;
+
 }

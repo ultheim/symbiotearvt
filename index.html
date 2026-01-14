@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Symbiosis Organism</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="symbiosis-container"><canvas id="symbiosisCanvas"></canvas></div>
+
+    <div id="subtitle-mask">
+        <div id="subtitle-track"></div>
+    </div>
+
+    <div id="ui-layer">
+        <input type="text" id="wordInput" placeholder="INITIALIZING" autocomplete="off">
+        <button id="sendBtn" onclick="handleInput()">...</button>
+    </div>
+
+    <script src="audio.js"></script>
+    <script src="visuals.js"></script>
+    <script src="memory.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>

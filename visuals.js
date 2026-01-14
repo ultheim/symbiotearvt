@@ -397,16 +397,27 @@ window.initSymbiosisAnimation = function() {
     window.globalBoidsArray = boids;
 
     function resize() {
-        const rect = container.getBoundingClientRect();
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-        ctx.resetTransform();
-        ctx.scale(dpr, dpr);
-        width = rect.width; 
-        height = rect.height;
-        window.canvasLogicalWidth = width;
-        window.canvasLogicalHeight = height;
+    const rect = container.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    
+    // 1. Set the actual internal resolution (Physical Pixels)
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    
+    // 2. Force the CSS size to match the screen (Logical Points)
+    canvas.style.width = `${rect.width}px`;
+    canvas.style.height = `${rect.height}px`;
+
+    ctx.resetTransform();
+    
+    // 3. Scale the context so 1 unit in code = 1 logical pixel on screen
+    // This prevents particles from looking 3x larger on iPhone
+    ctx.scale(dpr, dpr); 
+    
+    width = rect.width; 
+    height = rect.height;
+    window.canvasLogicalWidth = width;
+    window.canvasLogicalHeight = height;
     }
     window.addEventListener('resize', resize); resize();
 
@@ -720,4 +731,5 @@ window.initSymbiosisAnimation = function() {
         requestAnimationFrame(animate);
     }
     animate();
+
 };

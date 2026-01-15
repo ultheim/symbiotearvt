@@ -1,0 +1,116 @@
+// --- GOOGLE APPS SCRIPT: SYMBIONT MEMORY ENGINE --- (placeholder for the real script running in Google Script)
+
+/**
+ * Initializes the sheet with correct headers. 
+ * Run this once manually if your sheet is empty.
+ */
+function setupSheet() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(["Date", "Entities", "Topics", "Fact"]);
+    Logger.log("Headers created successfully.");
+  } else {
+    Logger.log("Sheet already has data. Skipping header creation.");
+  }
+}
+
+/**
+ * Handles the POST requests from memory.js
+ */
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    
+    // Ensure Headers exist
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(["Date", "Entities", "Topics", "Fact"]);
+    }
+
+    // --- ACTION: STORE ---
+    if (data.action === "store") {
+      const date = new Date().toISOString();
+      sheet.appendRow([date, data.entities, data.topics, data.fact]);
+      return createJsonResponse({ status: "success", message: "Memory stored." });
+    
+    // --- ACTION: RETRIEVE ---
+    } else if (data.action === "retrieve") {
+      
+      // 1. IMPROVED KEYWORD PROCESSING
+      // We split the keywords by commas AND spaces to handle "favorite song" as "favorite" and "song"
+      let keywords = [];
+      if (data.keywords && Array.isArray(data.keywords)) {
+        data.keywords.forEach(k => {
+          if (k) {
+            const splitWords = k.toString().toLowerCase().split(/[\s,]+/);
+            keywords = keywords.concat(splitWords);
+          }
+        });
+      }
+
+      // Filter out duplicates and common "noise" words shorter than 3 characters
+      const cleanKeywords = [...new Set(keywords)].filter(k => k.length > 2);
+      
+      const rows = sheet.getDataRange().getValues();
+      let scoredMatches = [];
+      
+      // 2. SEARCH & SEMANTIC SCORING
+      // Start at index 1 to skip the header row
+      for (let i = 1; i < rows.length; i++) {
+        const rowEnt = String(rows[i][1]).toLowerCase();
+        const rowTop = String(rows[i][2]).toLowerCase();
+        const rowFact = String(rows[i][3]).toLowerCase();
+        const fullRowText = `${rowEnt} ${rowTop} ${rowFact}`;
+        
+        let score = 0;
+        
+        cleanKeywords.forEach(word => {
+          if (fullRowText.indexOf(word) !== -1) {
+            score++;
+            // Bonus points for matching in Entities or Topics (metadata)
+            if (rowEnt.includes(word) || rowTop.includes(word)) {
+              score += 0.5;
+            }
+          }
+        });
+
+        // Only keep the record if it matches at least one keyword
+        if (score > 0) {
+          scoredMatches.push({
+            text: `[Source: ${i}] ${rows[i][3]}`,
+            score: score
+          });
+        }
+      }
+      
+      // 3. RELEVANCE SORTING
+      // Sort Descending (High -> Low) to grab the top 20 best matches
+      scoredMatches.sort((a, b) => b.score - a.score);
+      let topMemories = scoredMatches.slice(0, 20);
+
+      // 4. CHRONOLOGICAL/LLM ORDERING
+      // We sort these 20 back into Ascending order (Low -> High)
+      // This places the MOST relevant match at the very bottom of the text block,
+      // making it the most "recent" thing the LLM reads before responding.
+      topMemories.sort((a, b) => a.score - b.score);
+
+      const finalMemories = topMemories.map(m => m.text);
+      
+      return createJsonResponse({ 
+        memories: finalMemories,
+        debug_keywords_used: cleanKeywords 
+      });
+    }
+    
+  } catch (error) {
+    return createJsonResponse({ status: "error", message: error.toString() });
+  }
+}
+
+/**
+ * Helper to format the JSON response for Google Apps Script
+ */
+function createJsonResponse(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
